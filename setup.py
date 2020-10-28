@@ -31,7 +31,7 @@ setup(
     description="Adds PyCharm debugging support to PyXLL.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version="0.0.1",
+    version="0.1.0",
     packages=find_packages(),
     include_package_data=True,
     package_data={
@@ -39,6 +39,10 @@ setup(
             "pyxll_pycharm/resources/ribbon.xml",
             "pyxll_pycharm/resources/debug.png",
         ]
+    },
+    project_urls={
+        "Source": "https://github.com/pyxll/pyxll-pycharm",
+        "Tracker": "https://github.com/pyxll/pyxll-pycharm/issues",
     },
     classifiers=[
         "Programming Language :: Python",
