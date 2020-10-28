@@ -1,0 +1,21 @@
+<!--
+ This ribbon xml gets merged with any others loaded by PyXLL via
+ the pyxll:ribbon entry point.
+ -->
+<customUI xmlns="http://schemas.microsoft.com/office/2006/01/customui" loadImage="pyxll.load_image">
+    <ribbon>
+        <tabs>
+            <tab id="pyxll" label="PyXLL">
+                <group id="Tools"
+                       label="Tools">
+                    <button id="PyXLLPyCharmDebug"
+                            size="large"
+                            label="PyCharm Debug"
+                            onAction="pyxll_pycharm.connect_to_pycharm"
+                            image="pyxll_pycharm:resources/debug.png"
+                            insertAfter="Reload" />
+                </group>
+            </tab>
+        </tabs>
+    </ribbon>
+</customUI>
