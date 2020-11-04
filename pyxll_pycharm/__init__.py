@@ -83,8 +83,8 @@ def connect_to_pycharm(*args):
                 _MB_OK)
             return
 
-        # Try to stop the current debugger (this sets pydevd.connected to False)
-        _log.info("Stopping the PyCharm debugger connection...")
+        # Calling stoptrace (this sets pydevd.connected to False)
+        _log.debug("Disconnecting from the PyCharm debugger...")
         pydevd.stoptrace()
 
         # Undo the stdout/stderr redirection (not strictly necessary!)
@@ -96,7 +96,21 @@ def connect_to_pycharm(*args):
             sys.stderr = sys.stderr_original
             del sys._pydevd_err_buffer_
 
+        # End the debugging session and kill all the pydevd threads
+        pydb = pydevd.get_global_debugger()
+        pydb.finish_debugging_session()
+        pydevd.kill_all_pydev_threads()
+
+        # Wait for all the pydevd threads to end
+        _log.debug("Waiting for the pydevd threads to finish.")
+        threads = list(pydevd.PyDBDaemonThread.created_pydb_daemon_threads.keys())
+        for thread in threads:
+            thread.join(timeout=1.0)
+            if thread.is_alive():
+                raise RuntimeError("Timed out waiting for pydevd thread to terminate.")
+
     # Connect to the remote debugger
+    _log.debug("Connecting to the PyCharm debugger...")
     pydevd_pycharm.settrace("localhost",
                             port=port,
                             suspend=suspend,
