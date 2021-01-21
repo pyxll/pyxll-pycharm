@@ -37,6 +37,8 @@ def connect_to_pycharm(*args):
     # Get the settings from the config
     port = 5000
     suspend = False
+    stdout_to_server = True
+    stderr_to_server = True
 
     cfg = get_config()
     if cfg.has_option("PYCHARM", "port"):
@@ -50,6 +52,18 @@ def connect_to_pycharm(*args):
             suspend = bool(int(cfg.get("PYCHARM", "suspend")))
         except (ValueError, TypeError):
             _log.error("Unexpected value for PYCHARM.suspend.")
+
+    if cfg.has_option("PYCHARM", "stdout_to_server"):
+        try:
+            stdout_to_server = bool(int(cfg.get("PYCHARM", "stdout_to_server")))
+        except (ValueError, TypeError):
+            _log.error("Unexpected value for PYCHARM.stdout_to_server.")
+
+    if cfg.has_option("PYCHARM", "stderr_to_server"):
+        try:
+            stderr_to_server = bool(int(cfg.get("PYCHARM", "stderr_to_server")))
+        except (ValueError, TypeError):
+            _log.error("Unexpected value for PYCHARM.stderr_to_server.")
 
     # If the debugger is not already running ask the user if they have started the debug server
     if not pydevd.connected:
@@ -83,7 +97,7 @@ def connect_to_pycharm(*args):
                 _MB_OK)
             return
 
-        # Calling stoptrace (this sets pydevd.connected to False)
+        # Call stoptrace (this sets pydevd.connected to False)
         _log.debug("Disconnecting from the PyCharm debugger...")
         pydevd.stoptrace()
 
@@ -114,8 +128,8 @@ def connect_to_pycharm(*args):
     pydevd_pycharm.settrace("localhost",
                             port=port,
                             suspend=suspend,
-                            stdoutToServer=True,
-                            stderrToServer=True)
+                            stdoutToServer=stdout_to_server,
+                            stderrToServer=stderr_to_server)
 
     # Reset excepthook to the default to avoid a PyCharm bug
     sys.excepthook = sys.__excepthook__

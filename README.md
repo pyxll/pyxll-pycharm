@@ -27,6 +27,8 @@ To configure add the following to your pyxll.cfg file (default values shown):
     [PYCHARM]
     port = 5000
     suspend = 0
+    stdout_to_server = 1
+    stderr_to_server = 1
 
 For more information about installing and using PyXLL see https://www.pyxll.com.
 

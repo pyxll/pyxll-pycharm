@@ -31,7 +31,7 @@ setup(
     description="Adds PyCharm debugging support to PyXLL.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version="0.1.2",
+    version="0.1.3",
     packages=find_packages(),
     include_package_data=True,
     package_data={
