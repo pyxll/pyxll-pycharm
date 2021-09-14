@@ -153,6 +153,18 @@ def ribbon():
     """Entry point for getting the pyxll ribbon file.
     Returns a list of (filename, data) tuples.
     """
+    cfg = get_config()
+
+    disable_ribbon = False
+    if cfg.has_option("PYCHARM", "disable_ribbon"):
+        try:
+            disable_ribbon = bool(int(cfg.get("PYCHARM", "disable_ribbon")))
+        except (ValueError, TypeError):
+            _log.error("Unexpected value for PYCHARM.disable_ribbon.")
+
+    if disable_ribbon:
+        return []
+
     ribbon = pkg_resources.resource_string(__name__, "resources/ribbon.xml")
     return [
         (None, ribbon)
