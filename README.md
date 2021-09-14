@@ -29,6 +29,7 @@ To configure add the following to your pyxll.cfg file (default values shown):
     suspend = 0
     stdout_to_server = 1
     stderr_to_server = 1
+    disable_ribbon = 0
 
 For more information about installing and using PyXLL see https://www.pyxll.com.
 
