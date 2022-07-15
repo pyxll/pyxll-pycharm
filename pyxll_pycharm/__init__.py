@@ -18,9 +18,7 @@ To configure add the following to your pyxll.cfg file::
     suspend = 0
 """
 from pyxll import get_config
-import pydevd_pycharm
 import pkg_resources
-import pydevd
 import ctypes
 import logging
 import sys
@@ -34,6 +32,11 @@ _IDYES = 0x6
 
 def connect_to_pycharm(*args):
     """Connect to the remote PyCharm debugger."""
+    # Defer importing pydevd until it's actually needed as it will conflict with using
+    # other debuggers such as VS Code.
+    import pydevd_pycharm
+    import pydevd
+
     # Get the settings from the config
     port = 5000
     suspend = False
