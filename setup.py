@@ -4,6 +4,7 @@ PyXLL-PyCharm
 PyCharm debugging support for PyXLL.
 
 Requires:
+    - Python >= 3.7
     - PyXLL >= 5.0.0
     - PyCharm Professional
 
@@ -31,7 +32,7 @@ setup(
     description="Adds PyCharm debugging support to PyXLL.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    version="0.2.1",
+    version="0.3.0",
     packages=find_packages(),
     include_package_data=True,
     package_data={
@@ -45,7 +46,7 @@ setup(
         "Tracker": "https://github.com/pyxll/pyxll-pycharm/issues",
     },
     classifiers=[
-        "Programming Language :: Python",
+        "Programming Language :: Python :: 3 :: Only",
         "License :: OSI Approved :: MIT License",
         "Operating System :: Microsoft :: Windows"
     ],
@@ -58,5 +59,6 @@ setup(
     install_requires=[
         "pyxll >= 5.0.0",
         "pydevd-pycharm"
-    ]
+    ],
+    python_requires=">=3.7"
 )

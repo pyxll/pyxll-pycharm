@@ -6,6 +6,7 @@ PyCharm debugging support for PyXLL.
 Requires:
     - PyXLL >= 5.0.0
     - PyCharm Professional
+    - Python >= 3.7
 
 To install this package use::
 
@@ -16,7 +17,9 @@ To configure add the following to your pyxll.cfg file::
     [PYCHARM]
     port = 5000
     suspend = 0
+    fix_pydevd_import = 1
 """
+from ._import_pydevd import use_pycharm_pydevd
 from pyxll import get_config
 import pkg_resources
 import ctypes
@@ -25,23 +28,21 @@ import sys
 
 _log = logging.getLogger(__name__)
 
+
 _MB_YESNO = 0x04
 _MB_OK = 0x0
 _IDYES = 0x6
 
 
+#
 def connect_to_pycharm(*args):
     """Connect to the remote PyCharm debugger."""
-    # Defer importing pydevd until it's actually needed as it will conflict with using
-    # other debuggers such as VS Code.
-    import pydevd_pycharm
-    import pydevd
-
     # Get the settings from the config
     port = 5000
     suspend = False
     stdout_to_server = True
     stderr_to_server = True
+    fix_pydevd_import = True
 
     cfg = get_config()
     if cfg.has_option("PYCHARM", "port"):
@@ -68,74 +69,83 @@ def connect_to_pycharm(*args):
         except (ValueError, TypeError):
             _log.error("Unexpected value for PYCHARM.stderr_to_server.")
 
-    # If the debugger is not already running ask the user if they have started the debug server
-    if not pydevd.connected:
-        result = ctypes.windll.user32.MessageBoxA(
-            0,
-            b"Have you started the PyCharm remote debugger on port %d?" % port,
-            b"PyCharm Remote Debug",
-            _MB_YESNO)
+    if cfg.has_option("PYCHARM", "fix_pydevd_import"):
+        try:
+            fix_pydevd_import = bool(int(cfg.get("PYCHARM", "fix_pydevd_import")))
+        except (ValueError, TypeError):
+            _log.error("Unexpected value for PYCHARM.fix_pydevd_import.")
 
-        if result != _IDYES:
-            ctypes.windll.user32.MessageBoxA(
+    # Import pydevd_pycharm and pydevd, working around issues with multiple versions
+    # of pydevd being installed (e.g. when using ipython and debugpy).
+    with use_pycharm_pydevd(fix_pydevd_import) as (pydevd_pycharm, pydevd):
+        # If the debugger is not already running ask the user if they have started the debug server
+        if not pydevd.connected:
+            result = ctypes.windll.user32.MessageBoxA(
                 0,
-                b"Please start the PyCharm remote debugger on port %d first." % port,
+                b"Have you started the PyCharm remote debugger on port %d?" % port,
                 b"PyCharm Remote Debug",
-                _MB_OK)
-            return
-    else:
-        # The debugger is already running so check if the user has restarted the debug server
-        result = ctypes.windll.user32.MessageBoxA(
-            0,
-            b"The PyCharm debugger was already connected.\n" +
-            b"Have you re-started the PyCharm remote debugger on port %d?" % port,
-            b"PyCharm Remote Debug",
-            _MB_YESNO)
+                _MB_YESNO)
 
-        if result != _IDYES:
-            ctypes.windll.user32.MessageBoxA(
+            if result != _IDYES:
+                ctypes.windll.user32.MessageBoxA(
+                    0,
+                    b"Please start the PyCharm remote debugger on port %d first." % port,
+                    b"PyCharm Remote Debug",
+                    _MB_OK)
+                return
+        else:
+            # The debugger is already running so check if the user has restarted the debug server
+            result = ctypes.windll.user32.MessageBoxA(
                 0,
-                b"Please re-start the PyCharm remote debugger on port %d first." % port,
+                b"The PyCharm debugger was already connected.\n" +
+                b"Have you re-started the PyCharm remote debugger on port %d?" % port,
                 b"PyCharm Remote Debug",
-                _MB_OK)
-            return
+                _MB_YESNO)
 
-        # Call stoptrace (this sets pydevd.connected to False)
-        _log.debug("Disconnecting from the PyCharm debugger...")
-        pydevd.stoptrace()
+            if result != _IDYES:
+                ctypes.windll.user32.MessageBoxA(
+                    0,
+                    b"Please re-start the PyCharm remote debugger on port %d first." % port,
+                    b"PyCharm Remote Debug",
+                    _MB_OK)
+                return
 
-        # Undo the stdout/stderr redirection (not strictly necessary!)
-        if hasattr(sys, "_pydevd_out_buffer_") and hasattr(sys, "stdout_original"):
-            sys.stdout = sys.stdout_original
-            del sys._pydevd_out_buffer_
+            # Call stoptrace (this sets pydevd.connected to False)
+            _log.debug("Disconnecting from the PyCharm debugger...")
+            pydevd.stoptrace()
 
-        if hasattr(sys, "_pydevd_err_buffer_") and hasattr(sys, "stderr_original"):
-            sys.stderr = sys.stderr_original
-            del sys._pydevd_err_buffer_
+            # Undo the stdout/stderr redirection (not strictly necessary!)
+            if hasattr(sys, "_pydevd_out_buffer_") and hasattr(sys, "stdout_original"):
+                sys.stdout = sys.stdout_original
+                del sys._pydevd_out_buffer_
 
-        # End the debugging session and kill all the pydevd threads
-        pydb = pydevd.get_global_debugger()
-        pydb.finish_debugging_session()
-        pydevd.kill_all_pydev_threads()
+            if hasattr(sys, "_pydevd_err_buffer_") and hasattr(sys, "stderr_original"):
+                sys.stderr = sys.stderr_original
+                del sys._pydevd_err_buffer_
 
-        # Wait for all the pydevd threads to end
-        _log.debug("Waiting for the pydevd threads to finish.")
-        threads = list(pydevd.PyDBDaemonThread.created_pydb_daemon_threads.keys())
-        for thread in threads:
-            thread.join(timeout=1.0)
-            if thread.is_alive():
-                raise RuntimeError("Timed out waiting for pydevd thread to terminate.")
+            # End the debugging session and kill all the pydevd threads
+            pydb = pydevd.get_global_debugger()
+            pydb.finish_debugging_session()
+            pydevd.kill_all_pydev_threads()
 
-    # Connect to the remote debugger
-    _log.debug("Connecting to the PyCharm debugger...")
-    pydevd_pycharm.settrace("localhost",
-                            port=port,
-                            suspend=suspend,
-                            stdoutToServer=stdout_to_server,
-                            stderrToServer=stderr_to_server)
+            # Wait for all the pydevd threads to end
+            _log.debug("Waiting for the pydevd threads to finish.")
+            threads = list(pydevd.PyDBDaemonThread.created_pydb_daemon_threads.keys())
+            for thread in threads:
+                thread.join(timeout=1.0)
+                if thread.is_alive():
+                    raise RuntimeError("Timed out waiting for pydevd thread to terminate.")
 
-    # Reset excepthook to the default to avoid a PyCharm bug
-    sys.excepthook = sys.__excepthook__
+        # Connect to the remote debugger
+        _log.debug("Connecting to the PyCharm debugger...")
+        pydevd_pycharm.settrace("localhost",
+                                port=port,
+                                suspend=suspend,
+                                stdoutToServer=stdout_to_server,
+                                stderrToServer=stderr_to_server)
+
+        # Reset excepthook to the default to avoid a PyCharm bug
+        sys.excepthook = sys.__excepthook__
 
     ctypes.windll.user32.MessageBoxA(
         0,
