@@ -33,4 +33,4 @@ To configure add the following to your pyxll.cfg file (default values shown):
 
 For more information about installing and using PyXLL see https://www.pyxll.com.
 
-Copyright (c) 2020 PyXLL Ltd
+Copyright (c) PyXLL Ltd
