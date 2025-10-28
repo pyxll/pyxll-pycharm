@@ -18,12 +18,25 @@ To configure add the following to your pyxll.cfg file::
     suspend = 0
 """
 from pyxll import get_config
-import pkg_resources
 import ctypes
 import logging
 import sys
 
 _log = logging.getLogger(__name__)
+
+
+if sys.version_info[:2] >= (3, 7):
+    import importlib.resources
+
+    def _resource_bytes(package, resource_name):
+        return importlib.resources.read_binary(package, resource_name)
+
+else:
+    import pkg_resources
+
+    def _resource_bytes(package, resource_name):
+        return pkg_resources.resource_stream(package, resource_name).read()
+
 
 _MB_YESNO = 0x04
 _MB_OK = 0x0
@@ -168,7 +181,7 @@ def ribbon():
     if disable_ribbon:
         return []
 
-    ribbon = pkg_resources.resource_string(__name__, "resources/ribbon.xml")
+    ribbon = _resource_bytes(__name__, "resources/ribbon.xml").decode("utf-8")
     return [
         (None, ribbon)
     ]
