@@ -181,7 +181,7 @@ def ribbon():
     if disable_ribbon:
         return []
 
-    ribbon = _resource_bytes(__name__, "resources/ribbon.xml").decode("utf-8")
+    ribbon = _resource_bytes("pyxll_pycharm.resources", "ribbon.xml").decode("utf-8")
     return [
         (None, ribbon)
     ]
